@@ -13,11 +13,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	e := echo.New()
 
 	handler := Handler.NewHandler(p)
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, Go Bootcamp!")
 	})
+
+	e.GET("/taxes", handler.GetTaxes)
 
 	e.Logger.Fatal(e.Start(":1323"))
 }
