@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/kanawat2566/assessment-tax/constants"
-	"github.com/kanawat2566/assessment-tax/models"
+	"github.com/kanawat2566/assessment-tax/model"
 	"github.com/kanawat2566/assessment-tax/repository"
 	"github.com/kanawat2566/assessment-tax/services"
 	"github.com/stretchr/testify/assert" // assuming you use testify for assertions
