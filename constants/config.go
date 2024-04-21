@@ -8,6 +8,8 @@ const (
 	ErrMessageThenZero    = "Income should be greater than zero."
 	ErrMesssageWhtInvalid = "Withholding tax is invalid. It should be between 0 and total income."
 	ErrMessageTaxInvalid  = "Tax invalid request"
+	ErrMessageInternal = "Error internal"
+
 )
 
 var AllowanceTypes = []string{Donation, K_Receipt, Personal}
