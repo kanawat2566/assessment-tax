@@ -5,8 +5,8 @@ type Allowance struct {
 	Amount        float64 `json:"amount"`
 }
 
-type Income struct {
-	TotalIncome float64     `json:"totalIncome"`
+type TaxRequest struct {
+	TotalIncome float64     `json:"totalIncome" validate:"required,numeric,gte=0"`
 	WHT         float64     `json:"wht"`
 	Allowances  []Allowance `json:"allowances"`
 }
@@ -16,11 +16,7 @@ type TaxResponse struct {
 }
 
 type TaxLevel struct {
-	Levlel int     `json:"level"`
+	Income float64 `json:"income"`
+	Level  string  `json:"level"`
 	Tax    float64 `json:"tax"`
-}
-
-type TaxLevelResponse struct {
-	Tax      float64    `json:"tax"`
-	TaxLevel []TaxLevel `json:"taxLevel"`
 }
