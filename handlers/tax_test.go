@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-playground/validator"
 	"github.com/kanawat2566/assessment-tax/handlers"
-	"github.com/kanawat2566/assessment-tax/models"
+	"github.com/kanawat2566/assessment-tax/model"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 )

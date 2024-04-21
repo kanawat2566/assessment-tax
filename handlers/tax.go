@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-playground/validator"
-	"github.com/kanawat2566/assessment-tax/models"
+	models "github.com/kanawat2566/assessment-tax/model"
 	"github.com/kanawat2566/assessment-tax/services"
 	"github.com/labstack/echo/v4"
 )
