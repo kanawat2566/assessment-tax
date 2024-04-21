@@ -1,9 +1,9 @@
 CREATE TABLE IF NOT EXISTS income_tax_rates (
     id SERIAL PRIMARY KEY,
-    income_level VARCHAR(255),
-    min_income DECIMAL(18, 2) NOT NULL,
-    max_income DECIMAL(18, 2),
-    tax_rate DECIMAL(5, 2) NOT NULL
+    income_level VARCHAR(255) NOT NULL,
+    min_income numeric(18, 2) NOT NULL,
+    max_income numeric(18, 2) NOT NULL,
+    tax_rate numeric(5, 2) NOT NULL
 );
 
 
@@ -17,16 +17,15 @@ VALUES
 
 
 CREATE TABLE IF NOT EXISTS allowances (
-    allowance_name VARCHAR(50)  PRIMARY KEY,
-    max_allowance DECIMAL(18, 2),
-    min_allowance DECIMAL(18, 2)
+	allowance_name varchar(50) PRIMARY KEY NOT NULL,
+	max_allowance numeric(18, 2) NOT NULL,
+	min_allowance numeric(18, 2) NOT NULL,
+	limit_allowance numeric(18, 2) NOT NULL
 );
 
-INSERT INTO allowances (allowance_name, max_allowance, min_allowance)
-VALUES
-    ('Max_Donations_Allowance', 100000.00, NULL),
-    ('Default_Personal_Allowance', 60000.00, NULL),
-    ('K_Receipt_Max_Allowance', 50000.00, NULL),
-    ('Admin_Max_Personal_Allowance', 100000.00, NULL),
-    ('Admin_Max_K_Receipt_Allowance', 100000.00, NULL),
-    ('Personal_Min_Allowance', NULL, 10000.00);
+
+INSERT INTO allowances (allowance_name, max_allowance, min_allowance, limit_allowance)
+VALUES('k-receipt', 100000.00, 1.00, 50000.00),
+      ('donation', 100000.00, 1.00, 100000.00),
+      ('Personal', 100000.00, 10000.00, 60000.00);
+

@@ -13,8 +13,7 @@ type Postgres struct {
 	Db *sql.DB
 }
 
-func New() (*Postgres, error) {
-	//replace connection string with ENV
+func InitDB() (*sql.DB, error) {
 	godotenv.Load(".env")
 	databaseSource := os.Getenv("DB_CONN")
 
@@ -27,5 +26,10 @@ func New() (*Postgres, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return &Postgres{Db: db}, nil
+	return db, nil
+}
+
+func New(db *sql.DB) *Postgres {
+
+	return &Postgres{Db: db}
 }
