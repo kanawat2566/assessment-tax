@@ -49,12 +49,7 @@ func StoryUseCases() []TestCase {
 			name: "given input income total should payment tax",
 			request: models.TaxRequest{
 				TotalIncome: 500000,
-				WHT:         0,
-				Allowances: []models.Allowance{
-					{
-						AllowanceType: constants.Donation,
-						Amount:        0,
-					}}},
+			},
 			expected: models.TaxResponse{
 				Tax: 29000,
 			},
@@ -64,13 +59,20 @@ func StoryUseCases() []TestCase {
 			request: models.TaxRequest{
 				TotalIncome: 500000,
 				WHT:         25000.0,
-				Allowances: []models.Allowance{
-					{
-						AllowanceType: constants.Donation,
-						Amount:        0,
-					}}},
+			},
 			expected: models.TaxResponse{
 				Tax: 4000,
+			},
+		},
+		{
+			name: "given input income total and deducting WHT should return tax refund",
+			request: models.TaxRequest{
+				TotalIncome: 150000,
+				WHT:         2000,
+			},
+			expected: models.TaxResponse{
+				Tax:       0,
+				TaxRefund: 2000,
 			},
 		},
 	}
@@ -116,6 +118,23 @@ func TestCalculateTax_InvalidWHT(t *testing.T) {
 	taxRequest := &models.TaxRequest{
 		TotalIncome: 200,
 		WHT:         -1,
+	}
+
+	taxService := services.NewServices(mockRepo)
+	taxResponse, err := taxService.TaxCalculations(taxRequest)
+
+	// Assertions
+	assert.NotNil(t, err, "Error should not be nil for invalid income")
+	assert.EqualError(t, err, constants.ErrMesssageWhtInvalid, "Error message should match WHT")
+	assert.Zero(t, taxResponse)
+}
+
+func TestCalculateTax_InvalidWHTMore(t *testing.T) {
+
+	mockRepo := &MockTaxRepository{}
+	taxRequest := &models.TaxRequest{
+		TotalIncome: 200,
+		WHT:         200,
 	}
 
 	taxService := services.NewServices(mockRepo)
