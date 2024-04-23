@@ -36,7 +36,6 @@ func main() {
 
 	e.POST("/tax/calculations", taxHandler.CalculationsHandler)
 
-
 	serverInit(e)
 }
 
