@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/kanawat2566/assessment-tax/constants"
 	"github.com/kanawat2566/assessment-tax/repository"
-	"github.com/stretchr/testify/assert" 
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetTaxRates_Error(t *testing.T) {
@@ -15,7 +16,7 @@ func TestGetTaxRates_Error(t *testing.T) {
 	assert.Nil(t, err, "Error creating mock DB")
 	defer db.Close()
 
-	mock.ExpectQuery("SELECT * FROM income_tax_rates").WillReturnError(errors.New("database error"))
+	mock.ExpectQuery("SELECT * FROM income_tax_rates").WillReturnError(errors.New(constants.ErrMsgDatabaseError))
 
 	repo := repository.New(db)
 
@@ -24,7 +25,7 @@ func TestGetTaxRates_Error(t *testing.T) {
 
 	// Assertions
 	assert.NotNil(t, err, "Error should not be nil for failed query")
-	assert.EqualError(t, err, "database error", "Error message should match")
+	assert.EqualError(t, err, constants.ErrMsgDatabaseError, "Error message should match")
 }
 
 func TestGetTaxRates_Success(t *testing.T) {

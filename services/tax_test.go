@@ -12,16 +12,18 @@ import (
 )
 
 type MockTaxRepository struct {
-	taxRates   []*repository.IncomeTaxRates
-	allowances map[string]repository.Allowances
+	taxRates      []*repository.IncomeTaxRates
+	allowances    map[string]repository.Allowances
+	ratesErr      error
+	allowancesErr error
 }
 
 func (m *MockTaxRepository) GetTaxRates() (res []*repository.IncomeTaxRates, err error) {
-	return m.taxRates, err
+	return m.taxRates, m.ratesErr
 }
 
-func (m *MockTaxRepository) GetAllowanceConfig(allowanceType string) (repository.Allowances, error) {
-	return m.allowances[allowanceType], nil
+func (m *MockTaxRepository) GetLimitAllowances(allowanceType string) (r repository.Allowances, err error) {
+	return m.allowances[allowanceType], m.allowancesErr
 }
 
 type TestCase struct {
@@ -39,7 +41,9 @@ var mockRepo = &MockTaxRepository{
 		{IncomeLevel: "2,000,001 ขึ้นไป", MinIncome: 2000001.00, MaxIncome: 99999999999999.00, TaxRate: 35},
 	},
 	allowances: map[string]repository.Allowances{
-		constants.Personal: {LimitAmt: 60000},
+		constants.Personal:  {LimitAmt: 60000, MinAmt: 10001, MaxAmt: 100000},
+		constants.Donation:  {LimitAmt: 100000, MinAmt: 0, MaxAmt: 100000},
+		constants.K_Receipt: {LimitAmt: 50000, MinAmt: 1, MaxAmt: 100000},
 	},
 }
 
@@ -49,7 +53,12 @@ func StoryUseCases() []TestCase {
 			name: "given input income total should payment tax",
 			request: models.TaxRequest{
 				TotalIncome: 500000,
-			},
+				WHT:         0,
+				Allowances: []models.Allowance{
+					{
+						AllowanceType: constants.Donation,
+						Amount:        0,
+					}}},
 			expected: models.TaxResponse{
 				Tax: 29000,
 			},
@@ -75,11 +84,62 @@ func StoryUseCases() []TestCase {
 				TaxRefund: 2000,
 			},
 		},
+		{
+			name: "given input income total and allownce donation should payment tax",
+			request: models.TaxRequest{
+				TotalIncome: 500000,
+				WHT:         0,
+				Allowances: []models.Allowance{
+					{
+						AllowanceType: constants.Donation,
+						Amount:        200000.0,
+					}}},
+			expected: models.TaxResponse{
+				Tax: 19000,
+			},
+		},
+		{
+			name: "given input income total and allownce fix personal should payment tax",
+			request: models.TaxRequest{
+				TotalIncome: 500000,
+				WHT:         0,
+				Allowances: []models.Allowance{
+					{
+						AllowanceType: constants.Personal,
+						Amount:        50000,
+					},
+				},
+			},
+			expected: models.TaxResponse{
+				Tax: 30000,
+			},
+		},
+		{
+			name: "given input income total and deducting WHT with allownce should return tax refund",
+			request: models.TaxRequest{
+				TotalIncome: 500000,
+				WHT:         25000,
+				Allowances: []models.Allowance{
+					{
+						AllowanceType: constants.Donation,
+						Amount:        100000,
+					},
+					{
+						AllowanceType: constants.K_Receipt,
+						Amount:        100000,
+					},
+				},
+			},
+			expected: models.TaxResponse{
+				Tax:       0,
+				TaxRefund: 11000,
+			},
+		},
 	}
 	return cs
 }
 
-func TestCalculateTax_ValidInput(t *testing.T) {
+func TestCalculateTax_Valid(t *testing.T) {
 
 	cases := StoryUseCases()
 
@@ -92,84 +152,100 @@ func TestCalculateTax_ValidInput(t *testing.T) {
 			// Assertions
 			assert.Nil(t, err, "Error should be nil for valid inputs")
 			assert.Equal(t, tc.expected.Tax, rep.Tax, "Calculated tax should match")
+			assert.Equal(t, tc.expected.TaxRefund, rep.TaxRefund, "Tax refund should match")
 		})
 	}
-
 }
 
-func TestCalculateTax_InvalidIncome(t *testing.T) {
+type caseInvalids struct {
+	name     string
+	mockRepo *MockTaxRepository
+	request  models.TaxRequest
+	expected error
+}
 
-	mockRepo := &MockTaxRepository{}
-	taxRequest := &models.TaxRequest{
-		TotalIncome: -1,
+var invalids = func() (cs []caseInvalids) {
+	cs = []caseInvalids{
+		{
+			name:     "case invalid totalIncome less than 0",
+			mockRepo: &MockTaxRepository{},
+			request:  models.TaxRequest{TotalIncome: -100},
+			expected: errors.New(constants.ErrMessageThenZero),
+		},
+		{
+			name:     "case invalid WHT less than 0",
+			mockRepo: &MockTaxRepository{},
+			request:  models.TaxRequest{TotalIncome: 500000, WHT: -100},
+			expected: errors.New(constants.ErrMesssageWhtInvalid),
+		},
+		{
+			name:     "case invalid WHT more then total income",
+			mockRepo: &MockTaxRepository{},
+			request:  models.TaxRequest{TotalIncome: 150000, WHT: 150001},
+			expected: errors.New(constants.ErrMesssageWhtInvalid),
+		},
+		{
+			name:     "case invalid database error repo get rates",
+			mockRepo: &MockTaxRepository{ratesErr: errors.New("")},
+			request: models.TaxRequest{
+				TotalIncome: 150000,
+				Allowances:  []models.Allowance{{AllowanceType: constants.Donation, Amount: 1000}}},
+			expected: errors.New(constants.ErrMessageInternal),
+		},
+		{
+			name:     "case invalid database error repo get allowances",
+			mockRepo: &MockTaxRepository{allowancesErr: errors.New("")},
+			request: models.TaxRequest{
+				TotalIncome: 150000,
+				Allowances:  []models.Allowance{{AllowanceType: constants.Donation, Amount: 1000}}},
+			expected: errors.New(constants.ErrMessageInternal),
+		},
+		{
+			name:     "case invalid AllowanceType not found",
+			mockRepo: &MockTaxRepository{},
+			request: models.TaxRequest{
+				TotalIncome: 500000,
+				Allowances:  []models.Allowance{{AllowanceType: "AllowanceType", Amount: 100}}},
+			expected: errors.New(constants.ErrMsgAllowanceType),
+		},
+		{
+			name:     "case invalid allowance less than 0",
+			mockRepo: &MockTaxRepository{},
+			request: models.TaxRequest{
+				TotalIncome: 500000,
+				Allowances:  []models.Allowance{{AllowanceType: constants.Donation, Amount: -1}}},
+			expected: errors.New(constants.ErrMsgAllowanceThenZero),
+		},
+		{
+			name:     "case invalid allowance personal more than 10,000",
+			mockRepo: mockRepo,
+			request: models.TaxRequest{
+				TotalIncome: 500000,
+				Allowances:  []models.Allowance{{AllowanceType: constants.Personal, Amount: 10000}}},
+			expected: errors.New(constants.ErrMsgAllowanceThenMin),
+		},
+		{
+			name:     "case invalid allowance k-receipt more than 0",
+			mockRepo: mockRepo,
+			request: models.TaxRequest{
+				TotalIncome: 500000,
+				Allowances:  []models.Allowance{{AllowanceType: constants.K_Receipt, Amount: 0}}},
+			expected: errors.New(constants.ErrMsgAllowanceThenMin),
+		},
 	}
+	return cs
+}()
 
-	taxService := services.NewServices(mockRepo)
-	taxResponse, err := taxService.TaxCalculations(taxRequest)
+func TestCalculateTax_Invalids(t *testing.T) {
 
-	// Assertions
-	assert.NotNil(t, err, "Error should not be nil for invalid income")
-	assert.EqualError(t, err, constants.ErrMessageThenZero, "Error message should match income")
-	assert.Zero(t, taxResponse)
-}
-func TestCalculateTax_InvalidWHT(t *testing.T) {
+	for _, tc := range invalids {
+		t.Run(tc.name, func(t *testing.T) {
+			serv := services.NewServices(tc.mockRepo)
+			rep, err := serv.TaxCalculations(&tc.request)
 
-	mockRepo := &MockTaxRepository{}
-	taxRequest := &models.TaxRequest{
-		TotalIncome: 200,
-		WHT:         -1,
+			assert.NotNil(t, err, "Error should not be nil for invalid")
+			assert.EqualError(t, err, tc.expected.Error(), "Error message should match")
+			assert.Zero(t, rep)
+		})
 	}
-
-	taxService := services.NewServices(mockRepo)
-	taxResponse, err := taxService.TaxCalculations(taxRequest)
-
-	// Assertions
-	assert.NotNil(t, err, "Error should not be nil for invalid income")
-	assert.EqualError(t, err, constants.ErrMesssageWhtInvalid, "Error message should match WHT")
-	assert.Zero(t, taxResponse)
-}
-
-func TestCalculateTax_InvalidWHTMore(t *testing.T) {
-
-	mockRepo := &MockTaxRepository{}
-	taxRequest := &models.TaxRequest{
-		TotalIncome: 200,
-		WHT:         200,
-	}
-
-	taxService := services.NewServices(mockRepo)
-	taxResponse, err := taxService.TaxCalculations(taxRequest)
-
-	// Assertions
-	assert.NotNil(t, err, "Error should not be nil for invalid income")
-	assert.EqualError(t, err, constants.ErrMesssageWhtInvalid, "Error message should match WHT")
-	assert.Zero(t, taxResponse)
-}
-
-type MockTaxRepository2 struct {
-	taxRates   []*repository.IncomeTaxRates
-	allowances map[string]repository.Allowances
-}
-
-func (m *MockTaxRepository2) GetTaxRates() (res []*repository.IncomeTaxRates, err error) {
-	return m.taxRates, errors.New(constants.ErrMessageInternal)
-}
-
-func (m *MockTaxRepository2) GetAllowanceConfig(allowanceType string) (repository.Allowances, error) {
-	return m.allowances[allowanceType], nil
-}
-
-func TestCalculateTax_GetTaxRatesError(t *testing.T) {
-
-	mockRepo := &MockTaxRepository2{}
-	taxRequest := &models.TaxRequest{
-		TotalIncome: 100,
-		WHT:         0,
-	}
-
-	taxService := services.NewServices(mockRepo)
-	_, err := taxService.TaxCalculations(taxRequest)
-
-	// Assertions
-	assert.EqualError(t, err, constants.ErrMessageInternal, "Error message should match")
 }
