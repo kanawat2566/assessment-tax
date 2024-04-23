@@ -45,13 +45,18 @@ func (ts *taxService) TaxCalculations(taxRequest *models.TaxRequest) (models.Tax
 
 	for _, v := range rates {
 
+		var tl models.TaxLevel
+		tl.Level = v.IncomeLevel
+
 		if incomeTotal >= v.MinIncome && v.TaxRate > 0 {
 
 			baseCal := math.Min(v.MaxIncome, incomeTotal) - (v.MinIncome - 1)
-			tax += baseCal * (v.TaxRate / 100)
+			tl.Tax = baseCal * (v.TaxRate / 100)
+			tax += tl.Tax
 		}
-
+		taxResp.TaxLevels = append(taxResp.TaxLevels, tl)
 	}
+
 	tax -= taxRequest.WHT
 	if tax < 0 {
 		taxResp.TaxRefund = math.Abs(tax)

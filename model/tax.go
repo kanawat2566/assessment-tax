@@ -12,16 +12,17 @@ type TaxRequest struct {
 }
 
 type TaxResponse struct {
-	Tax       float64 `json:"tax"`
-	TaxRefund float64 `json:"taxRefund"`
+	Tax       float64    `json:"tax"`
+	TaxRefund float64    `json:"taxRefund"`
+	TaxLevels []TaxLevel `json:"taxLevel"`
 }
 
 type TaxLevel struct {
-	Income float64 `json:"income"`
-	Level  string  `json:"level"`
-	Tax    float64 `json:"tax"`
+	Level string  `json:"level"`
+	Tax   float64 `json:"tax"`
 }
 
-type TaxOnlyReponse struct {
-	Tax float64 `json:"tax"`
+type TaxLevelReponse struct {
+	Tax       float64    `json:"tax"`
+	TaxLevels []TaxLevel `json:"taxLevel"`
 }
