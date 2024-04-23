@@ -1,9 +1,16 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-playground/validator"
+	"github.com/joho/godotenv"
 	"github.com/kanawat2566/assessment-tax/handlers"
 	"github.com/kanawat2566/assessment-tax/repository"
 	"github.com/kanawat2566/assessment-tax/services"
@@ -11,7 +18,7 @@ import (
 )
 
 func main() {
-	db,err := repository.InitDB()
+	db, err := repository.InitDB()
 	if err != nil {
 		panic(err)
 	}
@@ -29,5 +36,32 @@ func main() {
 
 	e.POST("/tax/calculations", taxHandler.CalculationsHandler)
 
-	e.Logger.Fatal(e.Start(":1323"))
+	serverInit(e)
+}
+
+func serverInit(e *echo.Echo) {
+	godotenv.Load(".env")
+	port := os.Getenv("PORT")
+	//e.Logger.Fatal(e.Start(fmt.Sprintf(`:%s`, port)))
+
+	go func() {
+		if err := e.Start(":" + port); err != nil && err != http.ErrServerClosed {
+			e.Logger.Fatal(err)
+		}
+	}()
+
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
+
+	<-shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := e.Shutdown(ctx); err != nil {
+		e.Logger.Errorf("error when closing server %v", err)
+	}
+
+	e.Logger.Info("shutting down the server")
+	fmt.Println("shutting down the server")
+
 }
