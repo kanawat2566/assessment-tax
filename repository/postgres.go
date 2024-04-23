@@ -15,7 +15,7 @@ type Postgres struct {
 
 func InitDB() (*sql.DB, error) {
 	godotenv.Load(".env")
-	databaseSource := os.Getenv("DB_CONN")
+	databaseSource := os.Getenv("DATABASE_URL")
 
 	db, err := sql.Open("postgres", databaseSource)
 	if err != nil {
