@@ -1,6 +1,11 @@
 package repository
 
-import "errors"
+import (
+	"database/sql"
+	"errors"
+
+	"github.com/kanawat2566/assessment-tax/constants"
+)
 
 type IncomeTaxRates struct {
 	ID          int     `postgres:"id"`
@@ -19,6 +24,7 @@ type Allowances struct {
 
 type TaxRepository interface {
 	GetTaxRates() ([]*IncomeTaxRates, error)
+	GetLimitAllowances(allowanceType string) (Allowances, error)
 }
 
 func (p *Postgres) GetTaxRates() ([]*IncomeTaxRates, error) {
@@ -31,7 +37,7 @@ func (p *Postgres) GetTaxRates() ([]*IncomeTaxRates, error) {
 	ORDER BY id;`)
 
 	if err != nil {
-		return nil, errors.New("database error")
+		return nil, errors.New(constants.ErrMsgDatabaseError)
 	}
 	defer rows.Close()
 	var incomeTaxRates []*IncomeTaxRates
@@ -39,9 +45,26 @@ func (p *Postgres) GetTaxRates() ([]*IncomeTaxRates, error) {
 		var t IncomeTaxRates
 		err = rows.Scan(&t.ID, &t.IncomeLevel, &t.MinIncome, &t.MaxIncome, &t.TaxRate)
 		if err != nil {
-			return nil, err
+			return nil, errors.New(constants.ErrMsgDatabaseError)
 		}
 		incomeTaxRates = append(incomeTaxRates, &t)
 	}
 	return incomeTaxRates, nil
+}
+func (p *Postgres) GetLimitAllowances(allowanceType string) (Allowances, error) {
+	res := Allowances{}
+
+	if allowanceType == "" {
+		return res, errors.New(constants.ErrMsgAllowanceType)
+	}
+
+	query := "SELECT  max_allowance,min_allowance,limit_allowance FROM allowances WHERE allowance_name=$1"
+	row := p.Db.QueryRow(query, allowanceType)
+
+	err := row.Scan(&res.MaxAmt, &res.MaxAmt, &res.LimitAmt)
+	if err == sql.ErrNoRows {
+		return res, errors.New(constants.ErrMsgDatabaseError)
+	}
+	res.Allowance_name = allowanceType
+	return res, nil
 }

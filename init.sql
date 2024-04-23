@@ -24,8 +24,9 @@ CREATE TABLE IF NOT EXISTS allowances (
 );
 
 
+
 INSERT INTO allowances (allowance_name, max_allowance, min_allowance, limit_allowance)
 VALUES('k-receipt', 100000.00, 1.00, 50000.00),
-      ('donation', 100000.00, 1.00, 100000.00),
-      ('Personal', 100000.00, 10000.00, 60000.00);
+      ('donation', 100000.00, 0, 100000.00),
+      ('personal', 100000.00, 10001.00, 60000.00);
 

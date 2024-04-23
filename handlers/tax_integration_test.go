@@ -54,7 +54,7 @@ func TestPostTaxCalulation_Invalid(t *testing.T) {
 
 	var result models.TaxResponse
 
-	res := clientRequest(http.MethodPost, uri("tax/calculations"), nil)
+	res := clientRequest("POST", uri("tax/calculations"), nil)
 	err := res.Decode(&result)
 
 	assert.Nil(t, err)
@@ -66,7 +66,7 @@ func TestPostTaxCalulation_valid(t *testing.T) {
 
 	var result models.TaxResponse
 
-	res := clientRequest(http.MethodPost, uri("tax/calculations"), strings.NewReader(
+	res := clientRequest("POST", uri("tax/calculations"), strings.NewReader(
 		`{
 		"totalIncome": 500000.0,
 		"wht": 0.0,

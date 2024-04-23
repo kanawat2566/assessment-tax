@@ -45,6 +45,11 @@ func (h *taxHandler) CalculationsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, res)
+	if res.TaxRefund > 0 {
+		return c.JSON(http.StatusOK, res)
+	} else {
+		tax := models.TaxOnlyReponse{Tax: res.Tax}
+		return c.JSON(http.StatusOK, tax)
+	}
 
 }
