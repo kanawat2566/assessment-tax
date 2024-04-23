@@ -135,6 +135,29 @@ func StoryUseCases() []TestCase {
 				TaxRefund: 11000,
 			},
 		},
+		{
+			name: "given input income total and deducting WHT with allownce should return tax level detail",
+			request: models.TaxRequest{
+				TotalIncome: 500000.0,
+				WHT:         0.0,
+				Allowances: []models.Allowance{
+					{
+						AllowanceType: constants.Donation,
+						Amount:        200000.0,
+					},
+				},
+			},
+			expected: models.TaxResponse{
+				Tax: 19000.0,
+				TaxLevels: []models.TaxLevel{
+					{Level: "0-150,000", Tax: 0.0},
+					{Level: "150,001-500,000", Tax: 19000.0},
+					{Level: "500,001-1,000,000", Tax: 0.0},
+					{Level: "1,000,001-2,000,000", Tax: 0.0},
+					{Level: "2,000,001 ขึ้นไป", Tax: 0.0},
+				},
+			},
+		},
 	}
 	return cs
 }
@@ -153,6 +176,48 @@ func TestCalculateTax_Valid(t *testing.T) {
 			assert.Nil(t, err, "Error should be nil for valid inputs")
 			assert.Equal(t, tc.expected.Tax, rep.Tax, "Calculated tax should match")
 			assert.Equal(t, tc.expected.TaxRefund, rep.TaxRefund, "Tax refund should match")
+		})
+	}
+}
+
+func TestCalculateTaxLevel_Valid(t *testing.T) {
+
+	cases := []TestCase{{
+		name: "given input income total and deducting WHT with allownce should return tax level detail",
+		request: models.TaxRequest{
+			TotalIncome: 500000.0,
+			WHT:         0.0,
+			Allowances: []models.Allowance{
+				{
+					AllowanceType: constants.Donation,
+					Amount:        200000.0,
+				},
+			},
+		},
+		expected: models.TaxResponse{
+			Tax: 19000.0,
+			TaxLevels: []models.TaxLevel{
+				{Level: "0-150,000", Tax: 0.0},
+				{Level: "150,001-500,000", Tax: 19000.0},
+				{Level: "500,001-1,000,000", Tax: 0.0},
+				{Level: "1,000,001-2,000,000", Tax: 0.0},
+				{Level: "2,000,001 ขึ้นไป", Tax: 0.0},
+			},
+		},
+	},
+	}
+
+	for _, tc := range cases {
+
+		t.Run(tc.name, func(t *testing.T) {
+			serv := services.NewServices(mockRepo)
+			rep, err := serv.TaxCalculations(&tc.request)
+
+			// Assertions
+			assert.Nil(t, err, "Error should be nil for valid inputs")
+			assert.Equal(t, tc.expected.Tax, rep.Tax, "Calculated tax should match")
+			assert.Equal(t, tc.expected.TaxRefund, rep.TaxRefund, "Tax refund should match")
+			assert.Equal(t, tc.expected.TaxLevels, rep.TaxLevels, "TaxLevels should match")
 		})
 	}
 }
