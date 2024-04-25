@@ -8,19 +8,25 @@ import (
 	"testing"
 
 	"github.com/go-playground/validator"
+	"github.com/kanawat2566/assessment-tax/constants"
 	"github.com/kanawat2566/assessment-tax/handlers"
-	"github.com/kanawat2566/assessment-tax/model"
+	models "github.com/kanawat2566/assessment-tax/model"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 )
 
 type MockTaxService struct {
-	taxResp models.TaxResponse
-	err     error
+	taxResp    models.TaxResponse
+	deductResp constants.DeductConfig
+	err        error
 }
 
 func (m *MockTaxService) TaxCalculations(taxRequest *models.TaxRequest) (models.TaxResponse, error) {
 	return m.taxResp, m.err
+}
+
+func (m *MockTaxService) SetAdminDeductions(req constants.DeductConfig) (constants.DeductConfig, error) {
+	return m.deductResp, m.err
 }
 
 func TestCalculationsHandler_ValidRequest(t *testing.T) {

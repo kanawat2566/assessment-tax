@@ -11,10 +11,12 @@ import (
 
 	"github.com/go-playground/validator"
 	"github.com/joho/godotenv"
+	"github.com/kanawat2566/assessment-tax/constants"
 	"github.com/kanawat2566/assessment-tax/handlers"
 	"github.com/kanawat2566/assessment-tax/repository"
 	"github.com/kanawat2566/assessment-tax/services"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
@@ -35,6 +37,8 @@ func main() {
 	})
 
 	e.POST("/tax/calculations", taxHandler.CalculationsHandler)
+
+	e.POST("/admin/deductions/:deduct_type", taxHandler.Deductions, basicAuthMiddleware)
 
 	serverInit(e)
 }
@@ -63,5 +67,11 @@ func serverInit(e *echo.Echo) {
 
 	e.Logger.Info("shutting down the server")
 	fmt.Println("shutting down the server")
-
 }
+
+var basicAuthMiddleware = middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
+	if username == constants.UserAuth && password == constants.PassAuth {
+		return true, nil
+	}
+	return false, nil
+})

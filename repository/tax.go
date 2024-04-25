@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/kanawat2566/assessment-tax/constants"
+	ct "github.com/kanawat2566/assessment-tax/constants"
 )
 
 type IncomeTaxRates struct {
@@ -25,6 +25,7 @@ type Allowances struct {
 type TaxRepository interface {
 	GetTaxRates() ([]*IncomeTaxRates, error)
 	GetLimitAllowances(allowanceType string) (Allowances, error)
+	UpdateConfigDeduct(config ct.DeductConfig) error
 }
 
 func (p *Postgres) GetTaxRates() ([]*IncomeTaxRates, error) {
@@ -37,7 +38,7 @@ func (p *Postgres) GetTaxRates() ([]*IncomeTaxRates, error) {
 	ORDER BY id;`)
 
 	if err != nil {
-		return nil, errors.New(constants.ErrMsgDatabaseError)
+		return nil, errors.New(ct.ErrMsgDatabaseError)
 	}
 	defer rows.Close()
 	var incomeTaxRates []*IncomeTaxRates
@@ -45,7 +46,7 @@ func (p *Postgres) GetTaxRates() ([]*IncomeTaxRates, error) {
 		var t IncomeTaxRates
 		err = rows.Scan(&t.ID, &t.IncomeLevel, &t.MinIncome, &t.MaxIncome, &t.TaxRate)
 		if err != nil {
-			return nil, errors.New(constants.ErrMsgDatabaseError)
+			return nil, errors.New(ct.ErrMsgDatabaseError)
 		}
 		incomeTaxRates = append(incomeTaxRates, &t)
 	}
@@ -55,16 +56,29 @@ func (p *Postgres) GetLimitAllowances(allowanceType string) (Allowances, error) 
 	res := Allowances{}
 
 	if allowanceType == "" {
-		return res, errors.New(constants.ErrMsgAllowanceType)
+		return res, errors.New(ct.ErrMsgAllowanceType)
 	}
 
 	query := "SELECT  max_allowance,min_allowance,limit_allowance FROM allowances WHERE allowance_name=$1"
 	row := p.Db.QueryRow(query, allowanceType)
 
-	err := row.Scan(&res.MaxAmt, &res.MaxAmt, &res.LimitAmt)
+	err := row.Scan(&res.MaxAmt, &res.MinAmt, &res.LimitAmt)
 	if err == sql.ErrNoRows {
-		return res, errors.New(constants.ErrMsgDatabaseError)
+		return res, errors.New(ct.ErrMsgDatabaseError)
 	}
 	res.Allowance_name = allowanceType
 	return res, nil
+}
+
+func (p *Postgres) UpdateConfigDeduct(config ct.DeductConfig) error {
+	query := `UPDATE allowances SET limit_allowance = $1 WHERE allowance_name=$2;`
+	res, err := p.Db.Exec(query, config.Amount, config.Type)
+	if err != nil {
+		return errors.New(ct.ErrMsgDatabaseError)
+	}
+	affect, _ := res.RowsAffected()
+	if affect < 1 {
+		return errors.New(ct.ErrMsgUpdateNotSuccess)
+	}
+	return nil
 }
