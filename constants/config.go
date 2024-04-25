@@ -33,13 +33,15 @@ var AllowanceTypes = map[string]string{
 	"personal":  Personal,
 }
 
-type DeductConfig struct {
+type Deduction struct {
 	Type   string
 	Name   string
 	Amount float64
+	MinAmt float64
+	MaxAmt float64
 }
 
-var Deductios = map[string]DeductConfig{
+var Deductions = map[string]Deduction{
 	Personal:  {Type: Personal, Name: "personalDeduction"},
 	K_Receipt: {Type: K_Receipt, Name: "kReceipt"},
 }

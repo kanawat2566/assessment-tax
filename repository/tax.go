@@ -25,7 +25,7 @@ type Allowances struct {
 type TaxRepository interface {
 	GetTaxRates() ([]*IncomeTaxRates, error)
 	GetLimitAllowances(allowanceType string) (Allowances, error)
-	UpdateConfigDeduct(config ct.DeductConfig) error
+	UpdateConfigDeduct(config ct.Deduction) error
 }
 
 func (p *Postgres) GetTaxRates() ([]*IncomeTaxRates, error) {
@@ -70,7 +70,7 @@ func (p *Postgres) GetLimitAllowances(allowanceType string) (Allowances, error) 
 	return res, nil
 }
 
-func (p *Postgres) UpdateConfigDeduct(config ct.DeductConfig) error {
+func (p *Postgres) UpdateConfigDeduct(config ct.Deduction) error {
 	query := `UPDATE allowances SET limit_allowance = $1 WHERE allowance_name=$2;`
 	res, err := p.Db.Exec(query, config.Amount, config.Type)
 	if err != nil {

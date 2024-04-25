@@ -21,7 +21,7 @@ func NewServices(r repository.TaxRepository) *taxService {
 
 type TaxService interface {
 	TaxCalculations(taxRequest *models.TaxRequest) (models.TaxResponse, error)
-	SetAdminDeductions(req ct.DeductConfig) (ct.DeductConfig, error)
+	SetAdminDeductions(req ct.Deduction) (ct.Deduction, error)
 }
 
 func (ts *taxService) TaxCalculations(taxRequest *models.TaxRequest) (models.TaxResponse, error) {
@@ -121,37 +121,57 @@ func (ts *taxService) allowanceCal(allowances []models.Allowance) (float64, erro
 	return total, nil
 }
 
-func (ts *taxService) SetAdminDeductions(req ct.DeductConfig) (ct.DeductConfig, error) {
+func (ts *taxService) SetAdminDeductions(req ct.Deduction) (ct.Deduction, error) {
 
-	if req.Type == "" {
-		return ct.DeductConfig{}, errors.New(ct.ErrMsgInvalidDeduct)
-	}
-	dtype, ok := ct.Deductios[strings.ToLower(req.Type)]
-	if !ok {
-		return ct.DeductConfig{}, errors.New(ct.ErrMsgNotDeductSupport)
+	if err := validateDeductionType(req.Type); err != nil {
+		return ct.Deduction{}, err
 	}
 
-	config, err := ts.repo.GetLimitAllowances(dtype.Type)
+	d, err := ts.getDeductionDetails(req.Type)
 	if err != nil {
-		return ct.DeductConfig{}, errors.New(ct.ErrMessageInternal)
+		return ct.Deduction{}, err
 	}
 
-	if len(config.Allowance_name) == 0 {
-		return ct.DeductConfig{}, errors.New(ct.ErrMsgDeductNotFound)
+	if err := validateDeductionAmount(req.Amount, d); err != nil {
+		return ct.Deduction{}, err
 	}
 
-	if req.Amount < config.MinAmt {
-		return ct.DeductConfig{}, errors.New(cm.MsgWithNumber(ct.ErrMsgValidateMinAmt, config.MinAmt))
+	if err := ts.repo.UpdateConfigDeduct(req); err != nil {
+		return ct.Deduction{}, errors.New(ct.ErrMessageInternal)
 	}
 
-	if req.Amount > config.MaxAmt {
-		return ct.DeductConfig{}, errors.New(cm.MsgWithNumber(ct.ErrMsgValidateMaxAmt, config.MaxAmt))
-	}
+	return ct.Deduction{Type: d.Type, Name: d.Name, Amount: req.Amount}, nil
+}
 
-	uErr := ts.repo.UpdateConfigDeduct(req)
-	if uErr != nil {
-		return ct.DeductConfig{}, errors.New(ct.ErrMessageInternal)
+func validateDeductionType(dtype string) error {
+	if dtype == "" {
+		return errors.New(ct.ErrMsgInvalidDeduct)
 	}
+	return nil
+}
 
-	return ct.DeductConfig{Type: dtype.Type, Name: dtype.Name, Amount: req.Amount}, nil
+func (ts *taxService) getDeductionDetails(dtype string) (ct.Deduction, error) {
+	dtypeLower := strings.ToLower(dtype)
+	d, ok := ct.Deductions[dtypeLower]
+	if !ok {
+		return ct.Deduction{}, errors.New(ct.ErrMsgNotDeductSupport)
+	}
+	res, err := ts.repo.GetLimitAllowances(d.Type)
+	if err != nil {
+		return ct.Deduction{}, errors.New(ct.ErrMessageInternal)
+	}
+	if len(res.Allowance_name) == 0 {
+		return ct.Deduction{}, errors.New(ct.ErrMsgDeductNotFound)
+	}
+	return ct.Deduction{Type: d.Type, Name: d.Name, MinAmt: res.MinAmt, MaxAmt: res.MaxAmt}, nil
+}
+
+func validateDeductionAmount(amount float64, d ct.Deduction) error {
+	if amount < d.MinAmt {
+		return errors.New(cm.MsgWithNumber(ct.ErrMsgValidateMinAmt, d.MinAmt))
+	}
+	if amount > d.MaxAmt {
+		return errors.New(cm.MsgWithNumber(ct.ErrMsgValidateMaxAmt, d.MaxAmt))
+	}
+	return nil
 }
