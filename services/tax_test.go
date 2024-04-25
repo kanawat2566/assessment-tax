@@ -27,7 +27,7 @@ func (m *MockTaxRepository) GetTaxRates() (res []*repository.IncomeTaxRates, err
 func (m *MockTaxRepository) GetLimitAllowances(allowanceType string) (r repository.Allowances, err error) {
 	return m.allowances[allowanceType], m.awcErr
 }
-func (m *MockTaxRepository) UpdateConfigDeduct(config ct.DeductConfig) error {
+func (m *MockTaxRepository) UpdateConfigDeduct(config ct.Deduction) error {
 	return m.updateErr
 }
 
@@ -314,19 +314,19 @@ func TestCalculateTax_Invalids(t *testing.T) {
 
 type ConfigCase struct {
 	name     string
-	request  ct.DeductConfig
-	expected ct.DeductConfig
+	request  ct.Deduction
+	expected ct.Deduction
 }
 
 func TestConfigDeduction_Valids(t *testing.T) {
 	cases := []ConfigCase{
 		{name: "given admin set personal deduction amount 70,000 should return 70,000",
-			request:  ct.DeductConfig{Type: ct.Personal, Amount: 70000},
-			expected: ct.DeductConfig{Type: ct.Personal, Amount: 70000},
+			request:  ct.Deduction{Type: ct.Personal, Amount: 70000},
+			expected: ct.Deduction{Type: ct.Personal, Amount: 70000},
 		},
 		{name: "given admin set personal deduction amount 10,001 should return 10,001",
-			request:  ct.DeductConfig{Type: ct.Personal, Amount: 10001},
-			expected: ct.DeductConfig{Type: ct.Personal, Amount: 10001},
+			request:  ct.Deduction{Type: ct.Personal, Amount: 10001},
+			expected: ct.Deduction{Type: ct.Personal, Amount: 10001},
 		},
 	}
 
@@ -345,7 +345,7 @@ func TestConfigDeduction_Valids(t *testing.T) {
 type CaseConfigInvalids struct {
 	name     string
 	mockRepo *MockTaxRepository
-	request  ct.DeductConfig
+	request  ct.Deduction
 	expected error
 }
 
@@ -354,19 +354,19 @@ func TestConfigDeduction_Invalids(t *testing.T) {
 		{
 			name:     "case invalid type should return ErrInvalidDeductionType",
 			mockRepo: &MockTaxRepository{},
-			request:  ct.DeductConfig{},
+			request:  ct.Deduction{},
 			expected: errors.New(ct.ErrMsgInvalidDeduct),
 		},
 		{
 			name:     "case invalid type should return ErrInvalid Not Supported",
 			mockRepo: &MockTaxRepository{},
-			request:  ct.DeductConfig{Type: ct.Donation},
+			request:  ct.Deduction{Type: ct.Donation},
 			expected: errors.New(ct.ErrMsgNotDeductSupport),
 		},
 		{
 			name:     "case invalid get deductions from database error should return error",
 			mockRepo: &MockTaxRepository{awcErr: errors.New("error")},
-			request:  ct.DeductConfig{Type: ct.Personal, Amount: 50000},
+			request:  ct.Deduction{Type: ct.Personal, Amount: 50000},
 			expected: errors.New(ct.ErrMessageInternal),
 		},
 		{
@@ -374,25 +374,25 @@ func TestConfigDeduction_Invalids(t *testing.T) {
 			mockRepo: &MockTaxRepository{allowances: map[string]repository.Allowances{
 				ct.Donation: {Allowance_name: ct.Donation, LimitAmt: 100000, MinAmt: 0, MaxAmt: 100000},
 			}},
-			request:  ct.DeductConfig{Type: ct.Personal, Amount: 50000},
+			request:  ct.Deduction{Type: ct.Personal, Amount: 50000},
 			expected: errors.New(ct.ErrMsgDeductNotFound),
 		},
 		{
 			name:     "case invalid deductions amount must be greater minimum should return error",
 			mockRepo: _mockRepo,
-			request:  ct.DeductConfig{Type: ct.Personal, Amount: 10000},
+			request:  ct.Deduction{Type: ct.Personal, Amount: 10000},
 			expected: errors.New(cm.MsgWithNumber(ct.ErrMsgValidateMinAmt, 10001)),
 		},
 		{
 			name:     "case invalid deductions less than maximum should return error",
 			mockRepo: _mockRepo,
-			request:  ct.DeductConfig{Type: ct.Personal, Amount: 100001},
+			request:  ct.Deduction{Type: ct.Personal, Amount: 100001},
 			expected: errors.New(cm.MsgWithNumber(ct.ErrMsgValidateMaxAmt, 100000)),
 		},
 		{
 			name:     "case invalid set deductions from database error should return error",
 			mockRepo: &MockTaxRepository{allowances: _allowances, updateErr: errors.New("error")},
-			request:  ct.DeductConfig{Type: ct.Personal, Amount: 50000},
+			request:  ct.Deduction{Type: ct.Personal, Amount: 50000},
 			expected: errors.New(ct.ErrMessageInternal),
 		},
 	}

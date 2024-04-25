@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/go-playground/validator"
-	"github.com/kanawat2566/assessment-tax/constants"
+	ct "github.com/kanawat2566/assessment-tax/constants"
 	"github.com/kanawat2566/assessment-tax/handlers"
 	models "github.com/kanawat2566/assessment-tax/model"
 	"github.com/labstack/echo/v4"
@@ -17,7 +17,7 @@ import (
 
 type MockTaxService struct {
 	taxResp    models.TaxResponse
-	deductResp constants.DeductConfig
+	deductResp ct.Deduction
 	err        error
 }
 
@@ -25,7 +25,7 @@ func (m *MockTaxService) TaxCalculations(taxRequest *models.TaxRequest) (models.
 	return m.taxResp, m.err
 }
 
-func (m *MockTaxService) SetAdminDeductions(req constants.DeductConfig) (constants.DeductConfig, error) {
+func (m *MockTaxService) SetAdminDeductions(req ct.Deduction) (ct.Deduction, error) {
 	return m.deductResp, m.err
 }
 
