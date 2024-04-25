@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-playground/validator"
+	"github.com/kanawat2566/assessment-tax/constants"
 	models "github.com/kanawat2566/assessment-tax/model"
 	"github.com/kanawat2566/assessment-tax/services"
 	"github.com/labstack/echo/v4"
@@ -52,4 +53,27 @@ func (h *taxHandler) CalculationsHandler(c echo.Context) error {
 		return c.JSON(http.StatusOK, tax)
 	}
 
+}
+
+func (h *taxHandler) Deductions(c echo.Context) error {
+	d := c.Param("deduct_type")
+	dd := constants.Deductios[d]
+	if len(dd.Name) == 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid deduction type")
+
+	}
+	rq := new(models.DeductRequest)
+
+	if err := c.Bind(rq); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request")
+	}
+
+	if err := c.Validate(rq); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	response := map[string]interface{}{
+		dd.Name: rq.Amount,
+	}
+	return c.JSON(http.StatusOK, response)
 }

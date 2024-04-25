@@ -26,3 +26,11 @@ type TaxLevelReponse struct {
 	Tax       float64    `json:"tax"`
 	TaxLevels []TaxLevel `json:"taxLevel"`
 }
+
+type DeductRequest struct {
+	Amount float64 `json:"amount" validate:"required,numeric,gt=0"`
+}
+
+type DeductResponse struct {
+	PersonalDeduction float64 `json:"personalDeduction"`
+}
