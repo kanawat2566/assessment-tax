@@ -18,9 +18,13 @@ const (
 	ErrMsgAllowanceType     string = "Allowance type not found"
 	ErrMsgAllowanceThenZero string = "Allowances amount should be greater than zero."
 	ErrMsgAllowanceThenMin  string = "Allowance should be greater than minimun value of allowance."
-	ErrMsgDatabaseError     string = "database error"
-	ErrMsgInvalidDeduct     string = "Invalid Deduction Type"
-	ErrMsgNotDeductSupport  string = "Not Supported Deduction Type"
+	ErrMsgDatabaseError     string = "Database error"
+	ErrMsgInvalidDeduct     string = "Invalid deduction type"
+	ErrMsgDeductNotFound    string = "Deduction type not found"
+	ErrMsgNotDeductSupport  string = "Not Supported Deduction type"
+	ErrMsgUpdateNotSuccess  string = "Failed to update data in database"
+	ErrMsgValidateMinAmt    string = "Deduction amount must be greater or equal to"
+	ErrMsgValidateMaxAmt    string = "Deduction amount should be less than or equal to"
 )
 
 var AllowanceTypes = map[string]string{

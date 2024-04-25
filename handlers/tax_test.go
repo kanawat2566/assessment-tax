@@ -18,16 +18,15 @@ import (
 type MockTaxService struct {
 	taxResp    models.TaxResponse
 	deductResp constants.DeductConfig
-	taxCalErr  error
-	deductErr  error
+	err        error
 }
 
 func (m *MockTaxService) TaxCalculations(taxRequest *models.TaxRequest) (models.TaxResponse, error) {
-	return m.taxResp, m.taxCalErr
+	return m.taxResp, m.err
 }
 
 func (m *MockTaxService) SetAdminDeductions(req constants.DeductConfig) (constants.DeductConfig, error) {
-	return m.deductResp, m.deductErr
+	return m.deductResp, m.err
 }
 
 func TestCalculationsHandler_ValidRequest(t *testing.T) {

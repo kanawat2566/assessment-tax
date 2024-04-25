@@ -2,10 +2,10 @@ package services
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"strings"
 
+	cm "github.com/kanawat2566/assessment-tax/common"
 	ct "github.com/kanawat2566/assessment-tax/constants"
 	models "github.com/kanawat2566/assessment-tax/model"
 	"github.com/kanawat2566/assessment-tax/repository"
@@ -97,7 +97,6 @@ func (ts *taxService) allowanceCal(allowances []models.Allowance) (float64, erro
 
 		amt, err := ts.repo.GetLimitAllowances(at)
 		if err != nil {
-			fmt.Println(err)
 			return total, errors.New(ct.ErrMessageInternal)
 		}
 
@@ -127,10 +126,32 @@ func (ts *taxService) SetAdminDeductions(req ct.DeductConfig) (ct.DeductConfig, 
 	if req.Type == "" {
 		return ct.DeductConfig{}, errors.New(ct.ErrMsgInvalidDeduct)
 	}
-
-	if len(ct.Deductios[req.Type].Type) == 0 {
+	dtype, ok := ct.Deductios[strings.ToLower(req.Type)]
+	if !ok {
 		return ct.DeductConfig{}, errors.New(ct.ErrMsgNotDeductSupport)
 	}
 
-	return ct.DeductConfig{Amount: req.Amount}, nil
+	config, err := ts.repo.GetLimitAllowances(dtype.Type)
+	if err != nil {
+		return ct.DeductConfig{}, errors.New(ct.ErrMessageInternal)
+	}
+
+	if len(config.Allowance_name) == 0 {
+		return ct.DeductConfig{}, errors.New(ct.ErrMsgDeductNotFound)
+	}
+
+	if req.Amount < config.MinAmt {
+		return ct.DeductConfig{}, errors.New(cm.MsgWithNumber(ct.ErrMsgValidateMinAmt, config.MinAmt))
+	}
+
+	if req.Amount > config.MaxAmt {
+		return ct.DeductConfig{}, errors.New(cm.MsgWithNumber(ct.ErrMsgValidateMaxAmt, config.MaxAmt))
+	}
+
+	uErr := ts.repo.UpdateConfigDeduct(req)
+	if uErr != nil {
+		return ct.DeductConfig{}, errors.New(ct.ErrMessageInternal)
+	}
+
+	return ct.DeductConfig{Type: dtype.Type, Name: dtype.Name, Amount: req.Amount}, nil
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	cm "github.com/kanawat2566/assessment-tax/common"
 	ct "github.com/kanawat2566/assessment-tax/constants"
 	md "github.com/kanawat2566/assessment-tax/model"
 	"github.com/kanawat2566/assessment-tax/repository"
@@ -12,18 +13,22 @@ import (
 )
 
 type MockTaxRepository struct {
-	taxRates      []*repository.IncomeTaxRates
-	allowances    map[string]repository.Allowances
-	ratesErr      error
-	allowancesErr error
+	taxRates   []*repository.IncomeTaxRates
+	allowances map[string]repository.Allowances
+	taxErr     error
+	awcErr     error
+	updateErr  error
 }
 
 func (m *MockTaxRepository) GetTaxRates() (res []*repository.IncomeTaxRates, err error) {
-	return m.taxRates, m.ratesErr
+	return m.taxRates, m.taxErr
 }
 
 func (m *MockTaxRepository) GetLimitAllowances(allowanceType string) (r repository.Allowances, err error) {
-	return m.allowances[allowanceType], m.allowancesErr
+	return m.allowances[allowanceType], m.awcErr
+}
+func (m *MockTaxRepository) UpdateConfigDeduct(config ct.DeductConfig) error {
+	return m.updateErr
 }
 
 type TaxCase struct {
@@ -32,19 +37,21 @@ type TaxCase struct {
 	expected md.TaxResponse
 }
 
-var mockRepo = &MockTaxRepository{
-	taxRates: []*repository.IncomeTaxRates{
-		{IncomeLevel: "0-150,000", MinIncome: 0, MaxIncome: 150000, TaxRate: 0},
-		{IncomeLevel: "150,001-500,000", MinIncome: 150001, MaxIncome: 500000, TaxRate: 10},
-		{IncomeLevel: "500,001-1,000,000", MinIncome: 500001.00, MaxIncome: 1000000.00, TaxRate: 15},
-		{IncomeLevel: "1,000,001-2,000,000", MinIncome: 1000001.00, MaxIncome: 2000000.00, TaxRate: 20},
-		{IncomeLevel: "2,000,001 ขึ้นไป", MinIncome: 2000001.00, MaxIncome: 99999999999999.00, TaxRate: 35},
-	},
-	allowances: map[string]repository.Allowances{
-		ct.Personal:  {LimitAmt: 60000, MinAmt: 10001, MaxAmt: 100000},
-		ct.Donation:  {LimitAmt: 100000, MinAmt: 0, MaxAmt: 100000},
-		ct.K_Receipt: {LimitAmt: 50000, MinAmt: 1, MaxAmt: 100000},
-	},
+var _mockRepo = &MockTaxRepository{
+	taxRates:   _taxRates,
+	allowances: _allowances,
+}
+var _taxRates = []*repository.IncomeTaxRates{
+	{IncomeLevel: "0-150,000", MinIncome: 0, MaxIncome: 150000, TaxRate: 0},
+	{IncomeLevel: "150,001-500,000", MinIncome: 150001, MaxIncome: 500000, TaxRate: 10},
+	{IncomeLevel: "500,001-1,000,000", MinIncome: 500001.00, MaxIncome: 1000000.00, TaxRate: 15},
+	{IncomeLevel: "1,000,001-2,000,000", MinIncome: 1000001.00, MaxIncome: 2000000.00, TaxRate: 20},
+	{IncomeLevel: "2,000,001 ขึ้นไป", MinIncome: 2000001.00, MaxIncome: 99999999999999.00, TaxRate: 35},
+}
+var _allowances = map[string]repository.Allowances{
+	ct.Personal:  {Allowance_name: ct.Personal, LimitAmt: 60000, MinAmt: 10001, MaxAmt: 100000},
+	ct.Donation:  {Allowance_name: ct.Donation, LimitAmt: 100000, MinAmt: 0, MaxAmt: 100000},
+	ct.K_Receipt: {Allowance_name: ct.K_Receipt, LimitAmt: 50000, MinAmt: 1, MaxAmt: 100000},
 }
 
 func TestCalculateTax_Valids(t *testing.T) {
@@ -164,7 +171,7 @@ func TestCalculateTax_Valids(t *testing.T) {
 	for _, tc := range cases {
 
 		t.Run(tc.name, func(t *testing.T) {
-			serv := services.NewServices(mockRepo)
+			serv := services.NewServices(_mockRepo)
 			rep, err := serv.TaxCalculations(&tc.request)
 
 			// Assertions
@@ -205,7 +212,7 @@ func TestCalculateTaxLevel_Valids(t *testing.T) {
 	for _, tc := range cases {
 
 		t.Run(tc.name, func(t *testing.T) {
-			serv := services.NewServices(mockRepo)
+			serv := services.NewServices(_mockRepo)
 			rep, err := serv.TaxCalculations(&tc.request)
 
 			// Assertions
@@ -246,7 +253,7 @@ func TestCalculateTax_Invalids(t *testing.T) {
 		},
 		{
 			name:     "case invalid database error repo get rates",
-			mockRepo: &MockTaxRepository{ratesErr: errors.New("")},
+			mockRepo: &MockTaxRepository{taxErr: errors.New("")},
 			request: md.TaxRequest{
 				TotalIncome: 150000,
 				Allowances:  []md.Allowance{{AllowanceType: ct.Donation, Amount: 1000}}},
@@ -254,7 +261,7 @@ func TestCalculateTax_Invalids(t *testing.T) {
 		},
 		{
 			name:     "case invalid database error repo get allowances",
-			mockRepo: &MockTaxRepository{allowancesErr: errors.New("")},
+			mockRepo: &MockTaxRepository{awcErr: errors.New("")},
 			request: md.TaxRequest{
 				TotalIncome: 150000,
 				Allowances:  []md.Allowance{{AllowanceType: ct.Donation, Amount: 1000}}},
@@ -277,8 +284,8 @@ func TestCalculateTax_Invalids(t *testing.T) {
 			expected: errors.New(ct.ErrMsgAllowanceThenZero),
 		},
 		{
-			name:     "case invalid allowance personal more than 10,000",
-			mockRepo: mockRepo,
+			name:     "case invalid allowance personal greater than minimum config",
+			mockRepo: _mockRepo,
 			request: md.TaxRequest{
 				TotalIncome: 500000,
 				Allowances:  []md.Allowance{{AllowanceType: ct.Personal, Amount: 10000}}},
@@ -286,7 +293,7 @@ func TestCalculateTax_Invalids(t *testing.T) {
 		},
 		{
 			name:     "case invalid allowance k-receipt more than 0",
-			mockRepo: mockRepo,
+			mockRepo: _mockRepo,
 			request: md.TaxRequest{
 				TotalIncome: 500000,
 				Allowances:  []md.Allowance{{AllowanceType: ct.K_Receipt, Amount: 0}}},
@@ -313,15 +320,19 @@ type ConfigCase struct {
 
 func TestConfigDeduction_Valids(t *testing.T) {
 	cases := []ConfigCase{
-		{name: "given admin config personal deduction amount 70000 should return 70000",
+		{name: "given admin set personal deduction amount 70,000 should return 70,000",
 			request:  ct.DeductConfig{Type: ct.Personal, Amount: 70000},
 			expected: ct.DeductConfig{Type: ct.Personal, Amount: 70000},
+		},
+		{name: "given admin set personal deduction amount 10,001 should return 10,001",
+			request:  ct.DeductConfig{Type: ct.Personal, Amount: 10001},
+			expected: ct.DeductConfig{Type: ct.Personal, Amount: 10001},
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			serv := services.NewServices(mockRepo)
+			serv := services.NewServices(_mockRepo)
 			rep, err := serv.SetAdminDeductions(tc.request)
 			assert.Nil(t, err, "Error should be nil for valid inputs")
 			assert.Equal(t, tc.expected.Amount, rep.Amount, "Calculated tax should match")
@@ -352,10 +363,42 @@ func TestConfigDeduction_Invalids(t *testing.T) {
 			request:  ct.DeductConfig{Type: ct.Donation},
 			expected: errors.New(ct.ErrMsgNotDeductSupport),
 		},
+		{
+			name:     "case invalid get deductions from database error should return error",
+			mockRepo: &MockTaxRepository{awcErr: errors.New("error")},
+			request:  ct.DeductConfig{Type: ct.Personal, Amount: 50000},
+			expected: errors.New(ct.ErrMessageInternal),
+		},
+		{
+			name: "case invalid get deductions from database not found",
+			mockRepo: &MockTaxRepository{allowances: map[string]repository.Allowances{
+				ct.Donation: {Allowance_name: ct.Donation, LimitAmt: 100000, MinAmt: 0, MaxAmt: 100000},
+			}},
+			request:  ct.DeductConfig{Type: ct.Personal, Amount: 50000},
+			expected: errors.New(ct.ErrMsgDeductNotFound),
+		},
+		{
+			name:     "case invalid deductions amount must be greater minimum should return error",
+			mockRepo: _mockRepo,
+			request:  ct.DeductConfig{Type: ct.Personal, Amount: 10000},
+			expected: errors.New(cm.MsgWithNumber(ct.ErrMsgValidateMinAmt, 10001)),
+		},
+		{
+			name:     "case invalid deductions less than maximum should return error",
+			mockRepo: _mockRepo,
+			request:  ct.DeductConfig{Type: ct.Personal, Amount: 100001},
+			expected: errors.New(cm.MsgWithNumber(ct.ErrMsgValidateMaxAmt, 100000)),
+		},
+		{
+			name:     "case invalid set deductions from database error should return error",
+			mockRepo: &MockTaxRepository{allowances: _allowances, updateErr: errors.New("error")},
+			request:  ct.DeductConfig{Type: ct.Personal, Amount: 50000},
+			expected: errors.New(ct.ErrMessageInternal),
+		},
 	}
 	for _, tc := range invalids {
 		t.Run(tc.name, func(t *testing.T) {
-			serv := services.NewServices(mockRepo)
+			serv := services.NewServices(tc.mockRepo)
 			rep, err := serv.SetAdminDeductions(tc.request)
 
 			assert.NotNil(t, err, "Error should not be nil for invalid")

@@ -24,7 +24,7 @@ func NewHandler(s services.TaxService) *taxHandler {
 
 func (cv *CustomValidator) Validate(i interface{}) error {
 	if err := cv.Validator.Struct(i); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request")
 	}
 	return nil
 }
@@ -69,11 +69,17 @@ func (h *taxHandler) Deductions(c echo.Context) error {
 	}
 
 	if err := c.Validate(rq); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request")
+	}
+
+	res, err := h.serv.SetAdminDeductions(constants.DeductConfig{Type: dd.Type, Amount: rq.Amount})
+
+	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	response := map[string]interface{}{
-		dd.Name: rq.Amount,
+		res.Name: res.Amount,
 	}
 	return c.JSON(http.StatusOK, response)
 }
