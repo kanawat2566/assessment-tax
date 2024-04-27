@@ -56,7 +56,8 @@ func (h *taxHandler) CalculationsHandler(c echo.Context) error {
 }
 
 func (h *taxHandler) Deductions(c echo.Context) error {
-	d := c.Param("deduct_type")
+	d := c.Param("type")
+
 	dd := ct.Deductions[d]
 	if len(dd.Name) == 0 {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid deduction type")

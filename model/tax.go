@@ -33,4 +33,5 @@ type DeductRequest struct {
 
 type DeductResponse struct {
 	PersonalDeduction float64 `json:"personalDeduction"`
+	KReceipt          float64 `json:"kReceipt"`
 }
