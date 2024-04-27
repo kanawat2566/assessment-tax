@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-playground/validator"
@@ -56,7 +57,10 @@ func (h *taxHandler) CalculationsHandler(c echo.Context) error {
 }
 
 func (h *taxHandler) Deductions(c echo.Context) error {
-	d := c.Param("deduct_type")
+	d := c.Param("type")
+
+	fmt.Printf("type= %v\n", d)
+
 	dd := ct.Deductions[d]
 	if len(dd.Name) == 0 {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid deduction type")

@@ -64,7 +64,48 @@ func TestCalculationsHandler_ValidRequest(t *testing.T) {
 	assert.Equal(t, mockService.taxResp, response, "Response should match mock service response")
 }
 
-func RequestBody(taxRequest models.TaxRequest) *bytes.Reader {
-	jsonData, _ := json.Marshal(taxRequest)
+func RequestBody(r interface{}) *bytes.Reader {
+	jsonData, _ := json.Marshal(r)
 	return bytes.NewReader(jsonData)
+}
+
+func TestAdminDeductionHandler_ValidRequest(t *testing.T) {
+	// Create mock service
+	mockService := &MockTaxService{
+		deductResp: ct.Deduction{Name: "PersonalDeduction", Amount: 70000.0},
+	}
+
+	// expected
+	ep := models.DeductResponse{PersonalDeduction: 70000.00}
+
+	// Create handler with mock service
+	handler := handlers.NewHandler(mockService)
+
+	// Create a valid tax request
+	rq := models.DeductRequest{
+		Amount: 70000.0,
+	}
+
+	// Create a request object
+	e := echo.New()
+	e.Validator = &handlers.CustomValidator{Validator: validator.New()}
+	req := httptest.NewRequest(http.MethodPost, "/", RequestBody(rq))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+	rec := httptest.NewRecorder()
+	ctx := e.NewContext(req, rec)
+	ctx.SetPath("admin/deductions/:type")
+	ctx.SetParamNames("type")
+	ctx.SetParamValues(ct.Personal)
+
+	// Call the handler function
+	err := handler.Deductions(ctx)
+
+	// Assertions
+	assert.Nil(t, err, "Error should be nil for valid request")
+	assert.Equal(t, http.StatusOK, rec.Code, "HTTP status code should be 200")
+	var response models.DeductResponse
+	assert.Nil(t, json.Unmarshal(rec.Body.Bytes(), &response), "Response should be unmarshallable")
+	assert.Equal(t, ep.PersonalDeduction, response.PersonalDeduction, "Response should match mock service response")
+	assert.Equal(t, ep.KReceipt, response.KReceipt, "Response should match mock service response")
 }

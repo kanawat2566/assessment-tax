@@ -38,7 +38,7 @@ func main() {
 
 	e.POST("/tax/calculations", taxHandler.CalculationsHandler)
 
-	e.POST("/admin/deductions/:deduct_type", taxHandler.Deductions, basicAuthMiddleware)
+	e.POST("/admin/deductions/:type", taxHandler.Deductions, basicAuthMiddleware)
 
 	serverInit(e)
 }
