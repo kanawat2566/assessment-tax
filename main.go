@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-playground/validator"
 	"github.com/joho/godotenv"
 	"github.com/kanawat2566/assessment-tax/constants"
 	"github.com/kanawat2566/assessment-tax/handlers"
@@ -27,7 +26,7 @@ func main() {
 	p := repository.New(db)
 
 	e := echo.New()
-	e.Validator = &handlers.CustomValidator{Validator: validator.New()}
+	// e.Validator = &handlers.CustomValidator{Validator: validator.New()}
 
 	serv := services.NewServices(p)
 	taxHandler := handlers.NewHandler(serv)

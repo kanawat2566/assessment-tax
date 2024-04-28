@@ -11,6 +11,7 @@ const (
 	AllowanceDefault  float64 = 60000.00
 	MaximumWHTPercent float64 = 5.00
 
+	ErrInvalidFormatReq     string = "Error: Invalid format request."
 	ErrMessageThenZero      string = "Income should be greater than zero."
 	ErrMesssageWhtInvalid   string = "Withholding tax is invalid. It should be between 0 and total income."
 	ErrMessageTaxInvalid    string = "Tax invalid request"

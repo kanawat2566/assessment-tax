@@ -29,21 +29,10 @@ func NewHandler(s services.TaxService) *taxHandler {
 	return &taxHandler{serv: s}
 }
 
-func (cv *CustomValidator) Validate(i interface{}) error {
-	if err := cv.Validator.Struct(i); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request")
-	}
-	return nil
-}
-
 func (h *taxHandler) CalculationsHandler(c echo.Context) error {
 	rq := new(md.TaxRequest)
 
-	if err := c.Bind(rq); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
-	if err := c.Validate(rq); err != nil {
+	if err := BindWithValidate(c, rq); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
@@ -63,25 +52,20 @@ func (h *taxHandler) CalculationsHandler(c echo.Context) error {
 }
 
 func (h *taxHandler) Deductions(c echo.Context) error {
+	rq := new(md.DeductRequest)
 	d := c.Param("type")
 
 	dd := ct.Deductions[d]
 	if len(dd.Name) == 0 {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid deduction type")
+		return echo.NewHTTPError(http.StatusBadRequest, ct.ErrMsgDeductNotFound)
 
 	}
-	rq := new(md.DeductRequest)
 
-	if err := c.Bind(rq); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request")
-	}
-
-	if err := c.Validate(rq); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request")
+	if err := BindWithValidate(c, rq); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	res, err := h.serv.SetAdminDeductions(ct.Deduction{Type: dd.Type, Amount: rq.Amount})
-
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
