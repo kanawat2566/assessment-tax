@@ -166,6 +166,26 @@ func TestCalculateTax_Valids(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "given input income total and allownces should payment tax",
+			request: md.TaxRequest{
+				TotalIncome: 500000,
+				WHT:         0,
+				Allowances: []md.Allowance{
+					{
+						AllowanceType: ct.K_Receipt,
+						Amount:        200000,
+					},
+					{
+						AllowanceType: ct.Donation,
+						Amount:        100000,
+					},
+				},
+			},
+			expected: md.TaxResponse{
+				Tax: 14000,
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -184,29 +204,57 @@ func TestCalculateTax_Valids(t *testing.T) {
 
 func TestCalculateTaxLevel_Valids(t *testing.T) {
 
-	cases := []TaxCase{{
-		name: "given input income total and deducting WHT with allownce should return tax level detail",
-		request: md.TaxRequest{
-			TotalIncome: 500000.0,
-			WHT:         0.0,
-			Allowances: []md.Allowance{
-				{
-					AllowanceType: ct.Donation,
-					Amount:        200000.0,
+	cases := []TaxCase{
+		{
+			name: "given input income total and allownce should return tax level detail",
+			request: md.TaxRequest{
+				TotalIncome: 500000.0,
+				WHT:         0.0,
+				Allowances: []md.Allowance{
+					{
+						AllowanceType: ct.Donation,
+						Amount:        200000.0,
+					},
+				},
+			},
+			expected: md.TaxResponse{
+				Tax: 19000.0,
+				TaxLevels: []md.TaxLevel{
+					{Level: "0-150,000", Tax: 0.0},
+					{Level: "150,001-500,000", Tax: 19000.0},
+					{Level: "500,001-1,000,000", Tax: 0.0},
+					{Level: "1,000,001-2,000,000", Tax: 0.0},
+					{Level: "2,000,001 ขึ้นไป", Tax: 0.0},
 				},
 			},
 		},
-		expected: md.TaxResponse{
-			Tax: 19000.0,
-			TaxLevels: []md.TaxLevel{
-				{Level: "0-150,000", Tax: 0.0},
-				{Level: "150,001-500,000", Tax: 19000.0},
-				{Level: "500,001-1,000,000", Tax: 0.0},
-				{Level: "1,000,001-2,000,000", Tax: 0.0},
-				{Level: "2,000,001 ขึ้นไป", Tax: 0.0},
+		{
+			name: "given input income total and allownces should return tax level detail",
+			request: md.TaxRequest{
+				TotalIncome: 500000.0,
+				WHT:         0.0,
+				Allowances: []md.Allowance{
+					{
+						AllowanceType: ct.Donation,
+						Amount:        100000,
+					},
+					{
+						AllowanceType: ct.K_Receipt,
+						Amount:        200000.0,
+					},
+				},
+			},
+			expected: md.TaxResponse{
+				Tax: 14000,
+				TaxLevels: []md.TaxLevel{
+					{Level: "0-150,000", Tax: 0.0},
+					{Level: "150,001-500,000", Tax: 14000.0},
+					{Level: "500,001-1,000,000", Tax: 0.0},
+					{Level: "1,000,001-2,000,000", Tax: 0.0},
+					{Level: "2,000,001 ขึ้นไป", Tax: 0.0},
+				},
 			},
 		},
-	},
 	}
 
 	for _, tc := range cases {
