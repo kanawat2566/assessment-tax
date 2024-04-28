@@ -9,7 +9,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-playground/validator"
 	ct "github.com/kanawat2566/assessment-tax/constants"
 	"github.com/kanawat2566/assessment-tax/handlers"
 	models "github.com/kanawat2566/assessment-tax/model"
@@ -54,7 +53,7 @@ func TestCalculationsHandler_ValidRequest(t *testing.T) {
 
 	// Create a request object
 	e := echo.New()
-	e.Validator = &handlers.CustomValidator{Validator: validator.New()}
+	//e.Validator = &handlers.CustomValidator{Validator: validator.New()}
 	req := httptest.NewRequest(http.MethodPost, "/tax/calulations", RequestBody(taxRequest))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 
@@ -97,7 +96,7 @@ func TestAdminDeductionHandler_ValidRequest(t *testing.T) {
 
 	// Create a request object
 	e := echo.New()
-	e.Validator = &handlers.CustomValidator{Validator: validator.New()}
+	//e.Validator = &handlers.CustomValidator{Validator: validator.New()}
 	req := httptest.NewRequest(http.MethodPost, "/", RequestBody(rq))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 
@@ -147,7 +146,7 @@ func TestCalFromUploadCsvHandler(t *testing.T) {
 		writer.Close()
 
 		e := echo.New()
-		e.Validator = &handlers.CustomValidator{Validator: validator.New()}
+		//e.Validator = &handlers.CustomValidator{Validator: validator.New()}
 		req := httptest.NewRequest(http.MethodPost, "/", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 

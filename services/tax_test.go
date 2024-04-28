@@ -418,7 +418,7 @@ func TestConfigDeduction_Invalids(t *testing.T) {
 			expected: errors.New(ct.ErrMessageInternal),
 		},
 		{
-			name: "case invalid get deductions from database not found",
+			name: "case invalid get deduction personal from database not found",
 			mockRepo: &MockTaxRepository{allowances: map[string]repository.Allowances{
 				ct.Donation: {Allowance_name: ct.Donation, LimitAmt: 100000, MinAmt: 0, MaxAmt: 100000},
 			}},
@@ -442,6 +442,26 @@ func TestConfigDeduction_Invalids(t *testing.T) {
 			mockRepo: &MockTaxRepository{allowances: _allowances, updateErr: errors.New("error")},
 			request:  ct.Deduction{Type: ct.Personal, Amount: 50000},
 			expected: errors.New(ct.ErrMessageInternal),
+		},
+		{
+			name: "case invalid get deduction k-receipt from database not found",
+			mockRepo: &MockTaxRepository{allowances: map[string]repository.Allowances{
+				ct.Donation: {Allowance_name: ct.Donation, LimitAmt: 100000, MinAmt: 0, MaxAmt: 100000},
+			}},
+			request:  ct.Deduction{Type: ct.K_Receipt, Amount: 50000},
+			expected: errors.New(ct.ErrMsgDeductNotFound),
+		},
+		{
+			name:     "case invalid deduction k-receipt amount must be greater minimum should return error",
+			mockRepo: _mockRepo,
+			request:  ct.Deduction{Type: ct.K_Receipt, Amount: 0},
+			expected: errors.New(cm.MsgWithNumber(ct.ErrMsgValidateMinAmt, 1)),
+		},
+		{
+			name:     "case invalid deduction k-receipt less than maximum should return error",
+			mockRepo: _mockRepo,
+			request:  ct.Deduction{Type: ct.K_Receipt, Amount: 100001},
+			expected: errors.New(cm.MsgWithNumber(ct.ErrMsgValidateMaxAmt, 100000)),
 		},
 	}
 	for _, tc := range invalids {

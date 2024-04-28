@@ -6,7 +6,7 @@ type Allowance struct {
 }
 
 type TaxRequest struct {
-	TotalIncome float64     `json:"totalIncome" validate:"required,numeric,gte=0"`
+	TotalIncome float64     `json:"totalIncome" validate:"required,numeric"`
 	WHT         float64     `json:"wht"`
 	Allowances  []Allowance `json:"allowances"`
 }
@@ -28,7 +28,7 @@ type TaxLevelReponse struct {
 }
 
 type DeductRequest struct {
-	Amount float64 `json:"amount" validate:"required,numeric,gt=0"`
+	Amount float64 `json:"amount" validate:"required,numeric"`
 }
 
 type DeductResponse struct {
