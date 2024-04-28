@@ -25,6 +25,16 @@ const (
 	ErrMsgUpdateNotSuccess  string = "Failed to update data in database"
 	ErrMsgValidateMinAmt    string = "Deduction amount must be greater or equal to"
 	ErrMsgValidateMaxAmt    string = "Deduction amount should be less than or equal to"
+	ErrMsgInvalidPathParam  string = "Invalid path param"
+
+	ErrMsgCsvInvaildFormat string = "format is wrong, please check your format."
+	ErrMsgFileNoUpload     string = "No file uploaded"
+	ErrMsgReadCsvFailed    string = "Failed to read csv file"
+	ErrInvalidIncomeCsv    string = "Invalid income number in line"
+	ErrInvalidWHTCsv       string = "Invalid WHT number in line"
+	ErrInvalidDonationCsv  string = "Invalid donation number in line"
+
+	PathParamUploadCsv string = "upload-csv"
 )
 
 var AllowanceTypes = map[string]string{
@@ -45,3 +55,5 @@ var Deductions = map[string]Deduction{
 	Personal:  {Type: Personal, Name: "personalDeduction"},
 	K_Receipt: {Type: K_Receipt, Name: "kReceipt"},
 }
+
+var CsvFomatFile = []string{"totalIncome", "wht", "donation"}

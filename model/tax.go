@@ -35,3 +35,9 @@ type DeductResponse struct {
 	PersonalDeduction float64 `json:"personalDeduction"`
 	KReceipt          float64 `json:"kReceipt"`
 }
+
+type Taxes struct {
+	TotalIncome float64 `json:"totalIncome"`
+	Tax         float64 `json:"tax"`
+	TaxRefund   float64 `json:"taxRefund"`
+}

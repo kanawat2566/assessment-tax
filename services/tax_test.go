@@ -172,7 +172,7 @@ func TestCalculateTax_Valids(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			serv := services.NewServices(_mockRepo)
-			rep, err := serv.TaxCalculations(&tc.request)
+			rep, err := serv.TaxCalculations(tc.request)
 
 			// Assertions
 			assert.Nil(t, err, "Error should be nil for valid inputs")
@@ -213,7 +213,7 @@ func TestCalculateTaxLevel_Valids(t *testing.T) {
 
 		t.Run(tc.name, func(t *testing.T) {
 			serv := services.NewServices(_mockRepo)
-			rep, err := serv.TaxCalculations(&tc.request)
+			rep, err := serv.TaxCalculations(tc.request)
 
 			// Assertions
 			assert.Nil(t, err, "Error should be nil for valid inputs")
@@ -303,7 +303,7 @@ func TestCalculateTax_Invalids(t *testing.T) {
 	for _, tc := range invalids {
 		t.Run(tc.name, func(t *testing.T) {
 			serv := services.NewServices(tc.mockRepo)
-			rep, err := serv.TaxCalculations(&tc.request)
+			rep, err := serv.TaxCalculations(tc.request)
 
 			assert.NotNil(t, err, "Error should not be nil for invalid")
 			assert.EqualError(t, err, tc.expected.Error(), "Error message should match")
