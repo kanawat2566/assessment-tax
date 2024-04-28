@@ -20,11 +20,12 @@ func NewServices(r repository.TaxRepository) *taxService {
 }
 
 type TaxService interface {
-	TaxCalculations(taxRequest *models.TaxRequest) (models.TaxResponse, error)
+	TaxCalculations(taxRequest models.TaxRequest) (models.TaxResponse, error)
 	SetAdminDeductions(req ct.Deduction) (ct.Deduction, error)
+	TaxCalFromCsv(taxRequest []models.TaxRequest) ([]models.Taxes, error)
 }
 
-func (ts *taxService) TaxCalculations(taxRequest *models.TaxRequest) (models.TaxResponse, error) {
+func (ts *taxService) TaxCalculations(taxRequest models.TaxRequest) (models.TaxResponse, error) {
 	var taxResp models.TaxResponse
 	var tax float64
 
@@ -68,16 +69,34 @@ func (ts *taxService) TaxCalculations(taxRequest *models.TaxRequest) (models.Tax
 	return taxResp, nil
 }
 
-func validateInputs(taxRequest *models.TaxRequest) error {
-	if taxRequest.TotalIncome <= 0 {
+func (ts *taxService) TaxCalFromCsv(taxRequests []models.TaxRequest) ([]models.Taxes, error) {
+	var taxes []models.Taxes
+
+	for _, v := range taxRequests {
+		tax, err := ts.TaxCalculations(v)
+		if err != nil {
+			return nil, err
+		}
+		taxes = append(taxes, models.Taxes{
+			Tax:         tax.Tax,
+			TaxRefund:   tax.TaxRefund,
+			TotalIncome: v.TotalIncome,
+		})
+	}
+
+	return taxes, nil
+}
+
+func validateInputs(v models.TaxRequest) error {
+	if v.TotalIncome <= 0 {
 		return errors.New(ct.ErrMessageThenZero)
 	}
-	if taxRequest.WHT < 0 {
+	if v.WHT < 0 {
 		return errors.New(ct.ErrMesssageWhtInvalid)
 	}
 
 	//เช็คยอด WHT ต้องน้อยกว่าหรือเท่ากับรายได้
-	if taxRequest.WHT > taxRequest.TotalIncome {
+	if v.WHT > v.TotalIncome {
 		return errors.New(ct.ErrMesssageWhtInvalid)
 	}
 	return nil

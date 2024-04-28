@@ -37,7 +37,7 @@ func main() {
 	})
 
 	e.POST("/tax/calculations", taxHandler.CalculationsHandler)
-
+	e.POST("/tax/calculations/:uploadType", taxHandler.CalFromUploadCsvHandler)
 	e.POST("/admin/deductions/:type", taxHandler.Deductions, basicAuthMiddleware)
 
 	serverInit(e)
@@ -46,7 +46,6 @@ func main() {
 func serverInit(e *echo.Echo) {
 	godotenv.Load(".env")
 	port := os.Getenv("PORT")
-	//e.Logger.Fatal(e.Start(fmt.Sprintf(`:%s`, port)))
 
 	go func() {
 		if err := e.Start(":" + port); err != nil && err != http.ErrServerClosed {

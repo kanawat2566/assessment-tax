@@ -3,6 +3,8 @@ package handlers_test
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,22 +19,28 @@ import (
 
 type MockTaxService struct {
 	taxResp    models.TaxResponse
+	taxErr     error
 	deductResp ct.Deduction
-	err        error
+	deductErr  error
+	taxCsv     []models.Taxes
+	fileCsv    string
+	taxCsvErr  error
 }
 
-func (m *MockTaxService) TaxCalculations(taxRequest *models.TaxRequest) (models.TaxResponse, error) {
-	return m.taxResp, m.err
+func (m *MockTaxService) TaxCalculations(taxRequest models.TaxRequest) (models.TaxResponse, error) {
+	return m.taxResp, m.taxErr
 }
 
 func (m *MockTaxService) SetAdminDeductions(req ct.Deduction) (ct.Deduction, error) {
-	return m.deductResp, m.err
+	return m.deductResp, m.deductErr
 }
-
+func (m *MockTaxService) TaxCalFromCsv(taxRequest []models.TaxRequest) ([]models.Taxes, error) {
+	return m.taxCsv, m.taxCsvErr
+}
 func TestCalculationsHandler_ValidRequest(t *testing.T) {
 	// Create mock service
 	mockService := &MockTaxService{
-		taxResp: models.TaxResponse{Tax: 1000.0},
+		taxResp: models.TaxResponse{Tax: 29000.0},
 	}
 
 	// Create handler with mock service
@@ -40,7 +48,7 @@ func TestCalculationsHandler_ValidRequest(t *testing.T) {
 
 	// Create a valid tax request
 	taxRequest := models.TaxRequest{
-		TotalIncome: 200000,
+		TotalIncome: 500000,
 		WHT:         0,
 	}
 
@@ -60,8 +68,9 @@ func TestCalculationsHandler_ValidRequest(t *testing.T) {
 	assert.Nil(t, err, "Error should be nil for valid request")
 	assert.Equal(t, http.StatusOK, rec.Code, "HTTP status code should be 200")
 	var response models.TaxResponse
-	assert.Nil(t, json.Unmarshal(rec.Body.Bytes(), &response), "Response should be unmarshallable")
+	assert.Nil(t, json.Unmarshal(rec.Body.Bytes(), &response), "Response should be unmarshallable xxxx")
 	assert.Equal(t, mockService.taxResp, response, "Response should match mock service response")
+	assert.Equal(t, mockService.taxResp.Tax, response.Tax, "Response should match mock service response")
 }
 
 func RequestBody(r interface{}) *bytes.Reader {
@@ -108,4 +117,61 @@ func TestAdminDeductionHandler_ValidRequest(t *testing.T) {
 	assert.Nil(t, json.Unmarshal(rec.Body.Bytes(), &response), "Response should be unmarshallable")
 	assert.Equal(t, ep.PersonalDeduction, response.PersonalDeduction, "Response should match mock service response")
 	assert.Equal(t, ep.KReceipt, response.KReceipt, "Response should match mock service response")
+}
+
+type taxResponse struct {
+	Taxes []models.Taxes `json:"taxes"`
+}
+
+func TestCalFromUploadCsvHandler(t *testing.T) {
+	// Mock CSV data
+	validCsv := "totalIncome,wht,donation\n500000,0,0\n600000,40000,20000\n750000,50000,15000\n"
+	expected := []models.Taxes{
+		{Tax: 29000, TotalIncome: 500000},
+		{Tax: 29000, TotalIncome: 600000, TaxRefund: 2000},
+		{Tax: 11250, TotalIncome: 750000},
+	}
+	// Valid CSV test case
+	t.Run("ValidCSV", func(t *testing.T) {
+
+		mockService := &MockTaxService{
+			fileCsv: validCsv,
+			taxCsv:  expected,
+		}
+
+		body := new(bytes.Buffer)
+		writer := multipart.NewWriter(body)
+		writer.WriteField("taxFile", "taxes.csv")
+		part, _ := writer.CreateFormFile("taxFile", "taxes.csv")
+		part.Write([]byte(validCsv))
+		writer.Close()
+
+		e := echo.New()
+		e.Validator = &handlers.CustomValidator{Validator: validator.New()}
+		req := httptest.NewRequest(http.MethodPost, "/", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		rec := httptest.NewRecorder()
+		ctx := e.NewContext(req, rec)
+		ctx.SetPath("tax/calculations/:uploadType")
+		ctx.SetParamNames("uploadType")
+		ctx.SetParamValues("upload-csv")
+		ctx.FormFile("taxFile")
+
+		handler := handlers.NewHandler(mockService)
+
+		err := handler.CalFromUploadCsvHandler(ctx)
+
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, rec.Code)
+
+		var response taxResponse
+		assert.Nil(t, json.Unmarshal(rec.Body.Bytes(), &response), "Response should be unmarshallable")
+		assert.Equal(t, expected, response.Taxes, "Response should match mock service response")
+
+	})
+}
+
+func (m *MockTaxService) FormFile(key string) (io.ReadCloser, error) {
+	return io.NopCloser(bytes.NewBufferString(m.fileCsv)), nil
 }
