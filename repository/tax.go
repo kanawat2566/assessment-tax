@@ -59,7 +59,14 @@ func (p *Postgres) GetLimitAllowances(allowanceType string) (Allowances, error) 
 		return res, errors.New(ct.ErrMsgAllowanceType)
 	}
 
-	query := "SELECT  max_allowance,min_allowance,limit_allowance FROM allowances WHERE allowance_name=$1"
+	query := `
+	SELECT  
+	max_allowance,
+	min_allowance,
+	limit_allowance 
+	FROM allowances 
+	WHERE allowance_name=$1`
+
 	row := p.Db.QueryRow(query, allowanceType)
 
 	err := row.Scan(&res.MaxAmt, &res.MinAmt, &res.LimitAmt)
