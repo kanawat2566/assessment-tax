@@ -37,7 +37,7 @@ func main() {
 
 	e.POST("/tax/calculations", taxHandler.CalculationsHandler)
 	e.POST("/tax/calculations/:uploadType", taxHandler.CalFromUploadCsvHandler)
-	e.POST("/admin/deductions/:type", taxHandler.Deductions, basicAuthMiddleware)
+	e.POST("/admin/deductions/:type", taxHandler.Deductions, BasicAuthMiddleware)
 
 	serverInit(e)
 }
@@ -67,7 +67,7 @@ func serverInit(e *echo.Echo) {
 	fmt.Println("shutting down the server")
 }
 
-var basicAuthMiddleware = middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
+var BasicAuthMiddleware = middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
 	if username == constants.UserAuth && password == constants.PassAuth {
 		return true, nil
 	}
